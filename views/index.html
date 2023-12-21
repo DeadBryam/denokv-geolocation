@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Deno Geolocation Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+    />
+  </head>
+  <body>
+    <div id="container">
+      <div class="animate__animated animate__fadeInDown" id="title-container">
+        <h1>Hello Deno!</h1>
+        <img src="" alt="" id="flag" />
+      </div>
+      <div id="country-container" class="animate__animated animate__fadeInUp">
+        <p id="location-item"></p>
+      </div>
+    </div>
+  </body>
+</html>
+
+<style>
+  body {
+    font-family: Roboto, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    max-width: 100vw;
+    background-color: #7d0a0a;
+    color: #fff;
+  }
+  h1 {
+    margin: 0;
+    font-size: 3rem;
+    padding: 0 0.5rem;
+  }
+  p {
+    margin: 0;
+    padding: 0 0.5rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  #country-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+  }
+  #title-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  #container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 3rem;
+  }
+  :root {
+    --animate-duration: 0.3s;
+  }
+</style>
+
+<script type="module">
+  const locationItem = document.getElementById("location-item");
+  const flag = document.getElementById("flag");
+
+  const titleContainer = document.getElementById("title-container");
+  const countryContainer = document.getElementById("country-container");
+
+  const stream = new EventSource("/api/visits");
+
+  stream.addEventListener("visits", (e) => {
+    const data = JSON.parse(e.data);
+    const { count, country } = data;
+
+    if (locationItem.innerHTML !== "") {
+      countryContainer.classList.remove("animate__fadeInUp");
+      countryContainer.classList.add("animate__fadeOutUp");
+
+      titleContainer.classList.remove("animate__fadeInDown");
+      titleContainer.classList.add("animate__fadeOutDown");
+    }
+
+    locationItem.innerHTML = `Warm welcome from ${country.city}, ${country.name}! You are our #${count} visitor!`;
+    flag.src = `https://flagcdn.com/48x36/${country.code}.webp`;
+
+    setTimeout(() => {
+      countryContainer.classList.remove("animate__fadeOutUp");
+      countryContainer.classList.add("animate__fadeInUp");
+
+      titleContainer.classList.remove("animate__fadeOutDown");
+      titleContainer.classList.add("animate__fadeInDown");
+    }, 300);
+  });
+
+  window.onbeforeunload = () => {
+    stream.close();
+  };
+
+  window.onunload = () => {
+    stream.close();
+  };
+</script>
