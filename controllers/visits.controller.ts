@@ -29,7 +29,7 @@ const getVisits = async (c: Context) => {
 
     country = {
       name: json.country,
-      code: json.countryCode,
+      code: json.countryCode.toLowerCase(),
       city: json.city,
       status: json.status,
     };
