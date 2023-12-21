@@ -1,5 +1,5 @@
 import { Hono } from "https://deno.land/x/hono@v3.11.8/mod.ts";
-import { compress, cors } from "https://deno.land/x/hono@v3.11.8/middleware.ts";
+import { compress, cors, serveStatic } from "https://deno.land/x/hono@v3.11.8/middleware.ts";
 import { ipMiddleware } from "./middlewares/ip.middleware.ts";
 import { visitsRoutes } from "./routes/index.ts";
 
@@ -16,5 +16,6 @@ app.use(ipMiddleware);
 //ROUTES
 app.get("/api", (c) => c.text("Deno Deploy!"));
 app.route("/api", visitsRoutes);
+app.get("/", serveStatic({path: "./views/index.html"}));
 
 Deno.serve(app.fetch);
