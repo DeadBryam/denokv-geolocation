@@ -1,5 +1,11 @@
 {
-    "tasks": {
-        "dev": "deno run --allow-net --allow-read --watch --unstable mod.ts"
-    }
+  "tasks": {
+    "dev": "deno run --allow-net --allow-read --watch --unstable mod.ts"
+  },
+  "deploy": {
+    "project": "20622d06-7cbf-48af-9a9f-97b44bfe0af3",
+    "exclude": [],
+    "include": [],
+    "entrypoint": "mod.ts"
+  }
 }
