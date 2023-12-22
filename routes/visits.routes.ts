@@ -1,7 +1,10 @@
-import { Hono } from 'https://deno.land/x/hono@v3.11.8/mod.ts';
+
+import { Router } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 import { getVisits } from "../controllers/index.ts";
 
-const visitsRoutes = new Hono();
+const visitsRoutes = new Router({
+    prefix: "/api",
+});
 
 visitsRoutes.get("/visits", getVisits);
 
