@@ -9,7 +9,7 @@ const ipMiddleware: Middleware = async (c, next) => {
   c.state = {
     addr:{
       name: addr?.country_name,
-      code: addr?.country_code?.toLowerCase(),
+      code: addr?.country_code?.toLowerCase() || 'unknown',
       city: addr?.city,
       status: addr.error === true ? 'nodata' : 'success'
     }
