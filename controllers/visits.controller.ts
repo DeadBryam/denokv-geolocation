@@ -1,25 +1,96 @@
-import { Context } from "https://deno.land/x/hono@v3.11.8/mod.ts";
-import { streamSSE } from "https://deno.land/x/hono@v3.11.8/helper.ts";
-
+import { ServerSentEvent } from "https://deno.land/x/oak@v12.6.1/deps.ts";
+import { Context } from "https://deno.land/x/oak@v12.6.1/mod.ts";
 import { Country } from "../@types/index.ts";
 import { db } from "../services/index.ts";
 
-
 const okv = await db.getKv();
 
-const getVisits = async (c: Context) => {
-  const ip = c.get("X-IP");
+const getVisits = async (ctx: Context) => {
+  ctx.response.headers.set("Content-Type", "text/event-stream");
+  ctx.response.headers.set("Cache-Control", "no-cache");
+  ctx.response.headers.set("Connection", "keep-alive");
+
+  const target = ctx.sendEvents();
+
+  target.dispatchMessage({ message: "Connected" });
+
+  const addr = ctx.state.addr;
+  const ip = ctx.request.ip;
+
+  const country: Country = await fetchLocation({ ip, addr });
+
   const listOfKeys = [
     ["visits", "count"],
     ["visits", "last"],
   ];
 
+  const op = okv.atomic();
+
+  if (country.status === "success") {
+    op.set(["visits", "last"], country);
+  }
+
+  op.sum(["visits", "count"], 1n);
+
+  await op.commit();
+
+  const streaming = okv.watch(listOfKeys);
+
+  iterateStream(streaming, {
+    callback: (value) => {
+      const [
+        { value: count },
+        { value: last },
+      ] = value as unknown as [
+        { value: bigint },
+        { value: Country },
+      ];
+
+      const event = new ServerSentEvent(
+        "visits",
+        {
+          data: JSON.stringify({
+            count: `${count}`,
+            country: last,
+          }),
+        },
+      );
+
+      target.dispatchEvent(event);
+    },
+  });
+};
+
+const iterateStream = async (
+  streaming: ReadableStream<Deno.KvEntryMaybe<unknown>[]>,
+  {
+    callback,
+  }: {
+    callback?: (value: Deno.KvEntryMaybe<unknown>[]) => void;
+  } = {},
+): Promise<void> => {
+  for await (const stream of streaming) {
+    callback?.call(null, stream);
+  }
+};
+
+const fetchLocation = async ({
+  ip,
+  addr,
+}: {
+  ip: string;
+  addr: Country;
+}): Promise<Country> => {
   let country: Country = {
     name: "Unknown",
     code: "XX",
     city: "Unknown",
     status: "idle",
   };
+
+  if (addr.status === "success") {
+    return addr;
+  }
 
   try {
     const res = await fetch(
@@ -38,37 +109,7 @@ const getVisits = async (c: Context) => {
     country.status = "error";
   }
 
-  const op = okv.atomic();
-
-  if (country.status === "success") {
-    op.set(["visits", "last"], country);
-  }
-
-  op.sum(["visits", "count"], 1n);
-
-  await op.commit();
-
-  return streamSSE(c, async (stream) => {
-    const streaming = okv.watch(listOfKeys);
-
-    for await (const streams of streaming) {
-      const { value: count } = streams[0] as {
-        value: bigint;
-      };
-      const { value: country } = streams[1] as {
-        value: Country;
-      };
-
-      const message = {
-        count: count.toString(),
-        country,
-      };
-      await stream.writeSSE({
-        data: JSON.stringify(message),
-        event: "visits",
-      });
-    }
-  });
+  return country;
 };
 
 export { getVisits };
