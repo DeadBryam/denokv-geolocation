@@ -100,7 +100,7 @@ const fetchLocation = async ({
 
     country = {
       name: json.country,
-      code: json.countryCode.toLowerCase(),
+      code: json.countryCode?.toLowerCase(),
       city: json.city,
       status: json.status,
     };
